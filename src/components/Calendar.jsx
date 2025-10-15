@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { GripVertical } from 'lucide-react';
 
-const Calendar = ({ schedule, weekDays, onAcceptBlock, onRejectBlock }) => {
+const Calendar = ({ schedule, weekDays, onAcceptBlock, onRejectBlock, onMoveBlock }) => {
+  const [draggedEvent, setDraggedEvent] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
   const hours = Array.from({ length: 15 }, (_, i) => i + 8); // 8 AM to 10 PM
   
   const getEventStyle = (event) => {
@@ -20,6 +23,55 @@ const Calendar = ({ schedule, weekDays, onAcceptBlock, onRejectBlock }) => {
   
   const getEventsByDay = (day) => {
     return schedule.filter(event => event.day === day);
+  };
+  
+  const handleDragStart = (e, event) => {
+    setDraggedEvent(event);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target);
+  };
+  
+  const handleDragEnd = () => {
+    setDraggedEvent(null);
+    setDropTarget(null);
+  };
+  
+  const handleDragOver = (e, day, hour) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget({ day, hour });
+  };
+  
+  const handleDragLeave = () => {
+    setDropTarget(null);
+  };
+  
+  const handleDrop = (e, day, hour) => {
+    e.preventDefault();
+    if (!draggedEvent) return;
+    
+    // Calculate new start time
+    const newStartTime = `${hour.toString().padStart(2, '0')}:00`;
+    
+    // Calculate duration
+    const oldStart = draggedEvent.startTime.split(':');
+    const oldEnd = draggedEvent.endTime.split(':');
+    const durationMinutes = (parseInt(oldEnd[0]) * 60 + parseInt(oldEnd[1])) - 
+                           (parseInt(oldStart[0]) * 60 + parseInt(oldStart[1]));
+    
+    // Calculate new end time
+    const newEndMinutes = hour * 60 + durationMinutes;
+    const newEndHour = Math.floor(newEndMinutes / 60);
+    const newEndMinute = newEndMinutes % 60;
+    const newEndTime = `${newEndHour.toString().padStart(2, '0')}:${newEndMinute.toString().padStart(2, '0')}`;
+    
+    // Call the move handler
+    if (onMoveBlock) {
+      onMoveBlock(draggedEvent, day, newStartTime, newEndTime);
+    }
+    
+    setDraggedEvent(null);
+    setDropTarget(null);
   };
   
   return (
@@ -45,21 +97,39 @@ const Calendar = ({ schedule, weekDays, onAcceptBlock, onRejectBlock }) => {
             </div>
             <div className="relative">
               {hours.map(hour => (
-                <div key={hour} className="h-[60px] border-b border-gray-100 border-r border-gray-100"></div>
+                <div 
+                  key={hour} 
+                  className={`h-[60px] border-b border-gray-100 border-r border-gray-100 transition-colors ${
+                    dropTarget?.day === day && dropTarget?.hour === hour 
+                      ? 'bg-blue-50 border-blue-300' 
+                      : ''
+                  }`}
+                  onDragOver={(e) => handleDragOver(e, day, hour)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day, hour)}
+                ></div>
               ))}
               
               {/* Events */}
               {getEventsByDay(day).map(event => (
                 <div
                   key={event.id}
-                  className={`absolute left-0 right-0 mx-1 rounded px-2 py-1 text-xs overflow-hidden ${
+                  draggable={event.isAISuggested || event.isDraggable !== false}
+                  onDragStart={(e) => handleDragStart(e, event)}
+                  onDragEnd={handleDragEnd}
+                  className={`absolute left-0 right-0 mx-1 rounded px-2 py-1 text-xs overflow-hidden cursor-move ${
                     event.isAISuggested 
                       ? 'bg-orange-400 border-2 border-orange-600 shadow-lg animate-pulse' 
                       : event.color
-                  } text-white`}
+                  } text-white ${
+                    draggedEvent?.id === event.id ? 'opacity-50' : ''
+                  }`}
                   style={getEventStyle(event)}
                 >
-                  <div className="font-semibold truncate">{event.title}</div>
+                  <div className="flex items-center gap-1">
+                    <GripVertical size={12} className="flex-shrink-0 opacity-70" />
+                    <div className="font-semibold truncate flex-1">{event.title}</div>
+                  </div>
                   <div className="text-[10px] opacity-90">
                     {event.startTime} - {event.endTime}
                   </div>

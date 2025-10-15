@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Calendar from './components/Calendar';
-import ChatBot from './components/ChatBot';
+import TaskForm from './components/TaskForm';
 import { dummySchedule, weekDays } from './data/dummySchedule';
 import { scheduleTask } from './utils/scheduler';
 import { BookOpen } from 'lucide-react';
@@ -67,6 +67,28 @@ function App() {
     setAiSuggestedBlocks([]);
   };
   
+  const handleMoveBlock = (block, newDay, newStartTime, newEndTime) => {
+    // Update the block's position
+    setSchedule(prevSchedule => 
+      prevSchedule.map(event => 
+        event.id === block.id 
+          ? { ...event, day: newDay, startTime: newStartTime, endTime: newEndTime }
+          : event
+      )
+    );
+    
+    // If it was an AI suggestion, also update the AI suggestions array
+    if (block.isAISuggested) {
+      setAiSuggestedBlocks(prev => 
+        prev.map(b => 
+          b.id === block.id 
+            ? { ...b, day: newDay, startTime: newStartTime, endTime: newEndTime }
+            : b
+        )
+      );
+    }
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-blue-50">
       {/* Header */}
@@ -84,8 +106,8 @@ function App() {
       
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* ChatBot */}
-        <ChatBot onScheduleTask={handleScheduleTask} />
+        {/* Task Form */}
+        <TaskForm onScheduleTask={handleScheduleTask} />
         
         {/* AI Suggestions Banner */}
         {aiSuggestedBlocks.length > 0 && (
@@ -119,11 +141,20 @@ function App() {
         
         {/* Calendar */}
         <div id="calendar">
+          {/* Drag and Drop Hint */}
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              <strong>💡 Pro Tip:</strong> You can drag and drop time blocks to reschedule them! 
+              Just click and hold on any block, then drag it to a new time slot.
+            </p>
+          </div>
+          
           <Calendar 
             schedule={schedule} 
             weekDays={weekDays}
             onAcceptBlock={handleAcceptBlock}
             onRejectBlock={handleRejectBlock}
+            onMoveBlock={handleMoveBlock}
           />
         </div>
         
