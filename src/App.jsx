@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Calendar from './components/Calendar';
-import TaskForm from './components/TaskForm';
+import ChatBot from './components/ChatBot';
 import { dummySchedule, weekDays } from './data/dummySchedule';
 import { scheduleTask } from './utils/scheduler';
 import { BookOpen } from 'lucide-react';
@@ -84,8 +84,8 @@ function App() {
       
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Task Form */}
-        <TaskForm onScheduleTask={handleScheduleTask} />
+        {/* ChatBot */}
+        <ChatBot onScheduleTask={handleScheduleTask} />
         
         {/* AI Suggestions Banner */}
         {aiSuggestedBlocks.length > 0 && (
